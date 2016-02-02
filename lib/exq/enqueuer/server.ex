@@ -68,6 +68,11 @@ defmodule Exq.Enqueuer.Server do
     {:reply, response, state}
   end
 
+  def handle_call({:requeue, jid, offset}, _from, state) do
+    response = JobQueue.requeue(state.redis, state.namespace, jid, offset)
+    {:reply, response, state}
+  end
+
   def terminate(_reason, _state) do
     :ok
   end

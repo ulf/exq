@@ -109,6 +109,36 @@ defmodule Exq.Redis.JobQueue do
   end
 
   @doc """
+  Requeues job at another time
+  """
+  def requeue(redis, _namespace, jid, offset) do
+    require Logger
+    # Get all queued jobs to find the right one
+    jobs = Connection.zrange!(redis, "exq:schedule", 0, -1)
+    # Compare jobs' ids to find the correct one
+    job = jobs |> Enum.filter(fn(x) ->
+      current_job = Json.decode!(x)
+      current_job["jid"] == jid
+    end) |> hd
+    # First, remove the job from queue
+    Connection.zrem!(redis, "exq:schedule", job)
+    job = Job.from_json(job)
+
+    # Calculate new execution time
+    time = Time.add(Time.now, Time.from(offset * 1_000_000, :usecs))
+
+    time2 = time |> Tuple.to_list
+    |> Enum.join("")
+    |> String.to_integer
+    |> div(1000)
+
+    job = %{ job | :enqueued_at => time2 }
+    job = Job.to_json(job)
+    Connection.zadd!(redis, "exq:schedule", time_to_score(time), job)
+    {:ok, "ok"}
+  end
+
+  @doc """
   Dequeue jobs for available queues
   """
   def dequeue(redis, namespace, host, queues) when is_list(queues) do

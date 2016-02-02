@@ -174,6 +174,11 @@ defmodule Exq.Manager.Server do
     {:noreply, state, 10}
   end
 
+  def handle_call({:requeue, id, offset}, from, state) do
+    Enqueuer.requeue(state.enqueuer, id, offset)
+    {:reply, :ok, state, 0}
+  end
+
   def handle_call({:subscribe, queue}, _from, state) do
     updated_state = add_queue(state, queue)
     {:reply, :ok, updated_state,0}

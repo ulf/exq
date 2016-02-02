@@ -63,6 +63,17 @@ defmodule Exq.Enqueuer.EnqueueApi do
       def enqueue_in(pid, from, queue, offset, worker, args) do
         GenServer.cast(pid, {:enqueue_in, from, queue, offset, worker, args})
       end
+
+      @doc """
+      Takes an existing scheduled job and reset the execution time
+
+      Expected args:
+        * `id` - ID of the enqueued job
+        * `offset` - New offset for execution
+        """
+      def requeue(pid, id, offset) do
+        GenServer.call(pid, {:requeue, id, offset}, Config.get(:genserver_timeout))
+      end
     end
   end
 end
